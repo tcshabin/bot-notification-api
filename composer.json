@@ -1,0 +1,22 @@
+{
+    "name": "tcshabin/bot-notification-api",
+    "description": "Lightweight Telegram notification package for PHP and Laravel",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Shabin T C",
+            "email": "your-email@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tcshabin\\BotNotification\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
+

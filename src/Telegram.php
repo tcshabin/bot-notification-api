@@ -1,14 +1,18 @@
 <?php
 
+namespace Tcshabin\BotNotification;
+
+use CURLFile;
+
 class Telegram
 {
     private string $botToken;
     private string $apiUrl;
 
-    public function __construct(array $config)
+    public function __construct(string $botToken)
     {
-        $this->botToken = $config['bot_token'];
-        $this->apiUrl   = $config['api_url'] . $this->botToken;
+        $this->botToken = $botToken;
+        $this->apiUrl   = 'https://api.telegram.org/bot' . $botToken;
     }
 
     private function sendRequest(string $method, array $data): array
@@ -26,7 +30,7 @@ class Telegram
 
         if ($response === false) {
             return [
-                'ok'    => false,
+                'ok' => false,
                 'error' => curl_error($ch)
             ];
         }
@@ -43,11 +47,11 @@ class Telegram
         ]);
     }
 
-    public function sendPhoto(string $chatId, string $photoPath, string $caption = ''): array
+    public function sendPhoto(string $chatId, string $filePath, string $caption = ''): array
     {
         return $this->sendRequest('sendPhoto', [
             'chat_id' => $chatId,
-            'photo'   => new CURLFile($photoPath),
+            'photo'   => new CURLFile($filePath),
             'caption' => $caption
         ]);
     }
@@ -61,3 +65,4 @@ class Telegram
         ]);
     }
 }
+
