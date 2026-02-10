@@ -1,99 +1,142 @@
 <?php
 
-namespace Tcshabin\NotificationApi\Matrix;
+namespace NotificationBot\Matrix;
 
-class MatrixNotifier
+use NotificationBot\Contracts\NotifierInterface;
+
+class MatrixNotifier implements NotifierInterface
 {
-    protected string $homeserver;
-    protected string $accessToken;
-    protected string $roomId;
+    private string $homeserver;
+    private string $accessToken;
+    private string $roomId;
 
-    public function __construct(
-        string $homeserver,
-        string $accessToken,
-        string $roomId
-    ) {
+    public function __construct(string $homeserver, string $accessToken, string $roomId)
+    {
         $this->homeserver  = rtrim($homeserver, '/');
         $this->accessToken = $accessToken;
         $this->roomId      = $roomId;
     }
 
-    public function sendMessage(string $message): array
+    /**
+     * Send text message
+     */
+    public function send(string $message): bool
     {
-        return $this->sendRoomMessage([
+        return $this->sendEvent([
             'msgtype' => 'm.text',
-            'body'    => $message
+            'body'    => $message,
         ]);
     }
 
-    public function sendPhoto(string $filePath, string $caption = ''): array
+    /**
+     * Send image
+     */
+    public function sendImage(string $imagePath, ?string $caption = null): bool
     {
-        $upload = $this->uploadFile($filePath);
+        $mxcUrl = $this->uploadMedia($imagePath, mime_content_type($imagePath));
 
-        return $this->sendRoomMessage([
+        if (!$mxcUrl) {
+            return false;
+        }
+
+        return $this->sendEvent([
             'msgtype' => 'm.image',
-            'body'    => $caption ?: basename($filePath),
-            'url'     => $upload['content_uri']
+            'body'    => basename($imagePath),
+            'url'     => $mxcUrl,
+            'info'    => [
+                'mimetype' => mime_content_type($imagePath),
+                'size'     => filesize($imagePath),
+            ],
         ]);
     }
 
-    public function sendDocument(string $filePath, string $caption = ''): array
+    /**
+     * Send document
+     */
+    public function sendDocument(string $filePath, ?string $caption = null): bool
     {
-        $upload = $this->uploadFile($filePath);
+        $mxcUrl = $this->uploadMedia($filePath, mime_content_type($filePath));
 
-        return $this->sendRoomMessage([
+        if (!$mxcUrl) {
+            return false;
+        }
+
+        return $this->sendEvent([
             'msgtype' => 'm.file',
-            'body'    => $caption ?: basename($filePath),
-            'url'     => $upload['content_uri']
+            'body'    => basename($filePath),
+            'url'     => $mxcUrl,
+            'info'    => [
+                'mimetype' => mime_content_type($filePath),
+                'size'     => filesize($filePath),
+            ],
         ]);
     }
 
-    protected function sendRoomMessage(array $payload): array
+    /**
+     * Upload media to Matrix
+     */
+    private function uploadMedia(string $filePath, string $mimeType): ?string
     {
-        return $this->request(
-            'PUT',
-            "/_matrix/client/r0/rooms/{$this->roomId}/send/m.room.message/" . uniqid(),
-            $payload
-        );
-    }
+        if (!file_exists($filePath)) {
+            return null;
+        }
 
-    protected function uploadFile(string $filePath): array
-    {
-        $mime = mime_content_type($filePath);
-
-        $ch = curl_init(
-            "{$this->homeserver}/_matrix/media/r0/upload?access_token={$this->accessToken}"
-        );
-
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_HTTPHEADER     => ["Content-Type: {$mime}"],
-            CURLOPT_POSTFIELDS     => file_get_contents($filePath),
-            CURLOPT_RETURNTRANSFER => true
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        return json_decode($response, true);
-    }
-
-    protected function request(string $method, string $uri, array $payload): array
-    {
-        $url = "{$this->homeserver}{$uri}?access_token={$this->accessToken}";
+        $url = "{$this->homeserver}/_matrix/media/v3/upload?access_token={$this->accessToken}";
 
         $ch = curl_init($url);
-
         curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST  => $method,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS     => json_encode($payload),
-            CURLOPT_RETURNTRANSFER => true
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                "Content-Type: {$mimeType}"
+            ],
+            CURLOPT_POSTFIELDS     => file_get_contents($filePath),
         ]);
 
         $response = curl_exec($ch);
+        $error    = curl_error($ch);
         curl_close($ch);
 
-        return json_decode($response, true);
+        if (!empty($error)) {
+            return null;
+        }
+
+        $result = json_decode($response, true);
+
+        return $result['content_uri'] ?? null;
+    }
+
+    /**
+     * Send message event to room
+     */
+    private function sendEvent(array $content): bool
+    {
+        $txnId = uniqid('txn_', true);
+
+        $url = "{$this->homeserver}/_matrix/client/v3/rooms/"
+            . urlencode($this->roomId)
+            . "/send/m.room.message/{$txnId}?access_token={$this->accessToken}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_PUT            => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_POSTFIELDS     => json_encode($content),
+        ]);
+
+        $response = curl_exec($ch);
+        $error    = curl_error($ch);
+        curl_close($ch);
+
+        if (!empty($error)) {
+            return false;
+        }
+
+        $result = json_decode($response, true);
+
+        return isset($result['event_id']);
     }
 }

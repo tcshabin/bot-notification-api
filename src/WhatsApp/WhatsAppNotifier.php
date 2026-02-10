@@ -1,82 +1,75 @@
 <?php
 
-namespace Tcshabin\NotificationApi\WhatsApp;
+namespace NotificationBot\WhatsApp;
 
-class WhatsAppNotifier
+use NotificationBot\Contracts\NotifierInterface;
+
+class WhatsAppNotifier implements NotifierInterface
 {
-    protected string $phoneNumberId;
-    protected string $accessToken;
-    protected string $apiVersion;
+    private string $accessToken;
+    private string $phoneNumberId;
+    private string $to;
+    private string $apiVersion = 'v18.0';
 
-    public function __construct(
-        string $phoneNumberId,
-        string $accessToken,
-        string $apiVersion = 'v18.0'
-    ) {
-        $this->phoneNumberId = $phoneNumberId;
+    public function __construct(string $accessToken, string $phoneNumberId, string $to)
+    {
         $this->accessToken  = $accessToken;
-        $this->apiVersion   = $apiVersion;
+        $this->phoneNumberId = $phoneNumberId;
+        $this->to           = $to;
     }
 
-    /* -----------------------------
-     | Send Text Message
-     |------------------------------*/
-    public function sendMessage(string $to, string $message): array
+    /**
+     * Send text message (within 24-hour session window)
+     */
+    public function send(string $message): bool
     {
-        return $this->request([
+        $payload = [
             'messaging_product' => 'whatsapp',
-            'to'   => $to,
+            'to'   => $this->to,
             'type' => 'text',
             'text' => [
                 'body' => $message
-            ]
-        ]);
+            ],
+        ];
+
+        return $this->request($payload);
     }
 
-    /* -----------------------------
-     | Send Template Message
-     |------------------------------*/
-    public function sendTemplate(
-        string $to,
-        string $templateName,
-        string $language = 'en_US'
-    ): array {
-        return $this->request([
+    /**
+     * Send template message (production safe)
+     */
+    public function sendTemplate(string $templateName, string $language = 'en_US', array $parameters = []): bool
+    {
+        $components = [];
+
+        if (!empty($parameters)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_map(fn($value) => [
+                    'type' => 'text',
+                    'text' => $value
+                ], $parameters),
+            ];
+        }
+
+        $payload = [
             'messaging_product' => 'whatsapp',
-            'to'   => $to,
-            'type' => 'template',
+            'to'       => $this->to,
+            'type'     => 'template',
             'template' => [
-                'name' => $templateName,
-                'language' => [
-                    'code' => $language
-                ]
-            ]
-        ]);
+                'name'     => $templateName,
+                'language' => ['code' => $language],
+                'components' => $components,
+            ],
+        ];
+
+        return $this->request($payload);
     }
 
-    /* -----------------------------
-     | Send Document
-     |------------------------------*/
-    public function sendDocument(
-        string $to,
-        string $documentUrl,
-        string $filename = 'file.pdf'
-    ): array {
-        return $this->request([
-            'messaging_product' => 'whatsapp',
-            'to'   => $to,
-            'type' => 'document',
-            'document' => [
-                'link' => $documentUrl,
-                'filename' => $filename
-            ]
-        ]);
-    }
-
-    /* -----------------------------
-     | HTTP Request
-     |------------------------------*/
-    protected function request(array $payload): array
+    /**
+     * Core HTTP request handler
+     */
+    private function request(array $payload): bool
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages";
 
@@ -86,15 +79,22 @@ class WhatsAppNotifier
             CURLOPT_POST           => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER     => [
-                'Content-Type: application/json',
-                "Authorization: Bearer {$this->accessToken}"
+                'Authorization: Bearer ' . $this->accessToken,
+                'Content-Type: application/json'
             ],
-            CURLOPT_POSTFIELDS     => json_encode($payload)
+            CURLOPT_POSTFIELDS     => json_encode($payload),
         ]);
 
         $response = curl_exec($ch);
+        $error    = curl_error($ch);
         curl_close($ch);
 
-        return json_decode($response, true);
+        if (!empty($error)) {
+            return false;
+        }
+
+        $result = json_decode($response, true);
+
+        return isset($result['messages'][0]['id']);
     }
 }

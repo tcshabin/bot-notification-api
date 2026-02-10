@@ -1,33 +1,31 @@
 <?php
 
-namespace Tcshabin\NotificationApi;
+namespace NotificationBot;
 
-use Tcshabin\NotificationApi\Telegram\TelegramNotifier;
-use Tcshabin\NotificationApi\Matrix\MatrixNotifier;
-use Tcshabin\NotificationApi\WhatsApp\WhatsAppNotifier;
+use NotificationBot\Telegram\TelegramNotifier;
+use NotificationBot\Matrix\MatrixNotifier;
+use NotificationBot\WhatsApp\WhatsAppNotifier;
+use NotificationBot\Slack\SlackNotifier;
 
 class Notification
 {
-    public static function telegram(
-        string $botToken,
-        string $chatId
-    ): TelegramNotifier {
-        return new TelegramNotifier($botToken, $chatId);
+    public static function telegram(string $token, string $chatId): TelegramNotifier
+    {
+        return new TelegramNotifier($token, $chatId);
     }
 
-    public static function matrix(
-        string $homeserver,
-        string $accessToken,
-        string $roomId
-    ): MatrixNotifier {
+    public static function matrix(string $homeserver, string $accessToken, string $roomId): MatrixNotifier
+    {
         return new MatrixNotifier($homeserver, $accessToken, $roomId);
     }
 
-    public static function whatsapp(
-        string $phoneNumberId,
-        string $accessToken,
-        string $apiVersion = 'v18.0'
-    ): WhatsAppNotifier {
-        return new WhatsAppNotifier($phoneNumberId, $accessToken, $apiVersion);
+    public static function whatsapp(string $token, string $phoneNumberId, string $to): WhatsAppNotifier
+    {
+        return new WhatsAppNotifier($token, $phoneNumberId, $to);
+    }
+
+    public static function slack(string $webhookUrl): SlackNotifier
+    {
+        return new SlackNotifier($webhookUrl);
     }
 }
