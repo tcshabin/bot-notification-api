@@ -15,7 +15,6 @@
 
 - Retry & timeout handling
 - Unified `send($channel, $data)` method
-- Laravel Facade
 - Queue support
 - Webhook notifications
 

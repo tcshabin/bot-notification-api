@@ -1,44 +1,43 @@
 # Notification Bot API
 
-A lightweight, open-source PHP notification package that allows you to send messages via:
+A lightweight **PHP notification package** for sending messages via:
 
-- ✅ Telegram Bot API
-- ✅ Matrix (Element) Protocol
-- ✅ WhatsApp Cloud API (Free Tier)
+- ✅ Telegram
+- ✅ Matrix (Element)
+- ✅ Slack
+- ⚠️ WhatsApp Cloud API (free tier)
 
-Works with:
-- ✅ Core PHP (no framework)
-- ✅ Laravel (via Composer)
+Designed to work with:
+- ✔ Core PHP
+- ✔ Laravel
+- ✔ Any PSR-4 compatible framework
 
-No database required.  
-Ideal for alerts, logs, cron notifications, and micro-services.
+No database required.
 
 ---
 
 ## Features
 
 - Simple API
-- No database dependency
-- PSR-4 autoloading
-- Laravel friendly
-- Extensible notification drivers
-- Production ready
+- No framework lock-in
+- Production-safe integrations
+- Media support (Telegram & Matrix)
+- Composer package
+- Extensible design using interfaces
 
 ---
 
-## Supported Channels
+## Requirements
 
-| Channel   | Free | Open Source | Media Support |
-|---------|------|-------------|---------------|
-| Telegram | ✅   | ❌ API (Free) | ✅ Photo, Document |
-| Matrix   | ✅   | ✅           | ✅ File |
-| WhatsApp| ✅ Free Tier | ❌ API | ❌ Text only |
+- PHP **8.0+**
+- cURL extension enabled
+- Composer
 
 ---
 
 ## Installation
 
-### Via Composer (Recommended)
+### Via Composer (recommended)
 
 ```bash
 composer require tcshabin/notification-bot-api
