@@ -1,145 +1,163 @@
-# Bot Notification API – Telegram (PHP & Laravel)
+📦 Notification Bot API
 
-A lightweight, Composer-ready **Telegram notification package** for **Core PHP** and **Laravel** applications.  
-Easily send **messages, photos, and documents** using the Telegram Bot API without any database or framework dependency.
+A lightweight, framework-agnostic notification API for sending messages via
+Telegram and Matrix (Element).
 
----
+✔ Open source
+✔ Free
+✔ No database
+✔ No SDKs
+✔ Works in Core PHP and Laravel
+✔ Production-ready
 
-## 🚀 Features
+✨ Supported Platforms
+Platform	Text	Photo	Document
+Telegram	✅	✅	✅
+Matrix (Element)	✅	✅	✅
+📋 Requirements
 
-- ✅ Works with Core PHP
-- ✅ Works with Laravel
-- ✅ Composer installable
-- ✅ Send text messages
-- ✅ Send photos
-- ✅ Send documents (PDF, ZIP, etc.)
-- ❌ No database required
-- ⚡ Lightweight and fast
-- 🧱 Production ready
+PHP 7.4+
 
----
+cURL enabled
 
-## 📦 Installation
+Composer
 
-Install the package using Composer:
+📦 Installation
 
-```bash
-composer require tcshabin/bot-notification-api
+Install via Composer:
 
+composer require tcshabin/notification-bot-api
 
-## Requirements
-   PHP 8.0+
+🧠 Basic Concept
 
-   cURL extension enabled
+This package provides:
 
-   Telegram Bot Token
+Service-specific notifiers (Telegram, Matrix)
 
-🤖 Create Telegram Bot & Get Token
+A unified entry point using Notification
 
-Open Telegram and search for @BotFather
+You can use either approach.
 
-Run the command:
+🚀 Usage (Core PHP)
+Telegram
+use Tcshabin\NotificationApi\Notification;
 
-/newbot
+Notification::telegram(
+    'TELEGRAM_BOT_TOKEN',
+    'CHAT_ID'
+)->sendMessage('Hello from Core PHP 🚀');
 
 
-Follow the steps and copy your Bot Token
+Send photo:
 
-Keep the token secure (do not commit it)
+Notification::telegram($token, $chatId)
+    ->sendPhoto(__DIR__.'/photo.jpg', 'Photo caption');
 
-🧪 Usage in Core PHP Project
-Step 1: Install Package
-composer require tcshabin/bot-notification-api
 
-Step 2: Example Core PHP Script
-<?php
+Send document:
 
-require __DIR__ . '/vendor/autoload.php';
+Notification::telegram($token, $chatId)
+    ->sendDocument(__DIR__.'/file.pdf', 'File caption');
 
-use Tcshabin\BotNotification\Telegram;
+Matrix (Element)
+use Tcshabin\NotificationApi\Notification;
 
-$botToken = 'YOUR_TELEGRAM_BOT_TOKEN';
-$chatId   = 'CHAT_ID';
+Notification::matrix(
+    'https://matrix.org',
+    'ACCESS_TOKEN',
+    '!ROOMID:matrix.org'
+)->sendMessage('Hello Matrix 👋');
 
-$telegram = new Telegram($botToken);
 
-// Send text message
-$telegram->sendMessage($chatId, 'Hello from Core PHP');
+Send image:
 
-// Send photo
-$telegram->sendPhoto(
-    $chatId,
-    '/absolute/path/to/photo.jpg',
-    'Optional photo caption'
-);
+Notification::matrix($server, $token, $room)
+    ->sendPhoto(__DIR__.'/image.png', 'Matrix Image');
 
-// Send document
-$telegram->sendDocument(
-    $chatId,
-    '/absolute/path/to/file.pdf',
-    'Optional document caption'
-);
 
-🌱 Usage in Laravel Project
-Step 1: Install Package
-composer require tcshabin/bot-notification-api
+Send document:
 
-Step 2: Add Bot Token to .env
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+Notification::matrix($server, $token, $room)
+    ->sendDocument(__DIR__.'/file.pdf', 'Matrix File');
 
-Step 3: Configure config/services.php
-'telegram' => [
-    'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-],
+🚀 Usage (Laravel)
+Step 1: Install package
+composer require tcshabin/notification-bot-api
 
-Step 4: Use in Controller or Service
-<?php
+Step 2: Configure .env
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 
-namespace App\Http\Controllers;
+MATRIX_SERVER=https://matrix.org
+MATRIX_TOKEN=your_access_token
+MATRIX_ROOM=!roomid:matrix.org
 
-use Tcshabin\BotNotification\Telegram;
+Step 3: Add config (optional but recommended)
 
-class NotificationController extends Controller
-{
-    public function send()
-    {
-        $telegram = new Telegram(
-            config('services.telegram.bot_token')
-        );
+config/services.php
 
-        // Send text message
-        $telegram->sendMessage(
-            'CHAT_ID',
-            'Hello from Laravel 🚀'
-        );
+return [
 
-        // Send photo
-        $telegram->sendPhoto(
-            'CHAT_ID',
-            storage_path('app/public/photo.jpg'),
-            'Laravel photo'
-        );
+    'telegram' => [
+        'token'   => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id'=> env('TELEGRAM_CHAT_ID'),
+    ],
 
-        // Send document
-        $telegram->sendDocument(
-            'CHAT_ID',
-            storage_path('app/public/file.pdf'),
-            'Laravel document'
-        );
+    'matrix' => [
+        'server' => env('MATRIX_SERVER'),
+        'token'  => env('MATRIX_TOKEN'),
+        'room'   => env('MATRIX_ROOM'),
+    ],
 
-        return response()->json([
-            'status' => 'Notification sent successfully'
-        ]);
-    }
-}
+];
 
-📄 Available Methods
-Method	Description
-sendMessage($chatId, $message)	Send a text message
-sendPhoto($chatId, $filePath, $caption = '')	Send a photo
-sendDocument($chatId, $filePath, $caption = '')	Send a document
-📏 Telegram File Limits
-Type	Maximum Size
-Photo	~10 MB
-Document	~50 MB
-Bot Upload	Depends on Telegram
+Step 4: Use anywhere in Laravel
+use Tcshabin\NotificationApi\Notification;
+
+Notification::telegram(
+    config('services.telegram.token'),
+    config('services.telegram.chat_id')
+)->sendMessage('Laravel Telegram Message 🚀');
+
+Notification::matrix(
+    config('services.matrix.server'),
+    config('services.matrix.token'),
+    config('services.matrix.room')
+)->sendMessage('Laravel Matrix Message 🚀');
+
+🔐 How to Get Credentials
+Telegram
+
+Create bot via @BotFather
+
+Get BOT_TOKEN
+
+Get CHAT_ID from chat or group
+
+Matrix
+
+Create account on https://matrix.org
+
+Login and get access_token
+
+Create a room and copy room_id
+
+🏗 Project Structure
+src/
+├── Notification.php
+├── Telegram/
+│   └── TelegramNotifier.php
+└── Matrix/
+    └── MatrixNotifier.php
+
+🧩 Why this package?
+
+No database required
+
+No framework lock-in
+
+Simple HTTP-based implementation
+
+Easy to extend (Slack, Discord, WhatsApp)
+
+Suitable for microservices & cron jobs
